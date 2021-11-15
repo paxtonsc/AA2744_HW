@@ -22,6 +22,42 @@ def compute_dynamics(xvec, u, dt, compute_jacobians=True):
     # HINT: When abs(om) < EPSILON_OMEGA, assume that the theta stays approximately constant ONLY for calculating the next x, y
     #       New theta should not be equal to theta. Jacobian with respect to om is not 0.
 
+    x = xvec[0]
+    y = xvec[1]
+    th = xvec[2]
+    V = u[0]
+    om = u[1]
+
+    g = np.zeros(3)
+    Gx = np.eye(3)
+    Gu = np.zeros((3, 2))
+
+    if abs(om) < EPSILON_OMEGA:
+        g[0] = x + V*dt*np.cos(th)
+        g[1] = y + V*dt*np.sin(th)
+        g[2] = th
+
+        Gx[0,2] = -V*dt*np.sin(th)
+        Gx[1,2] = V*dt*np.cos(th)
+
+        Gu[0,0] = dt*np.cos(th)
+        Gu[1,0] = dt*np.sin(th)
+        Gu[0,1] = -1/2*V*dt**2*np.sin(th)
+        Gu[1,1] = 1/2*V*dt**2*np.cos(th)
+        Gu[2,1] = dt
+    else:
+        g[0] = x + V/om * (np.sin(th + om*dt) - np.sin(th))
+        g[1] = y + V/om * (-np.cos(th + om*dt) + np.cos(th))
+        g[2] = th + om*dt
+
+        Gx[0,2] = V/om * (np.cos(th + om*dt) - np.cos(th))
+        Gx[1,2] = V/om * (np.sin(th + om*dt) - np.sin(th))
+
+        Gu[0,0] = 1/om * (np.sin(th + om*dt) - np.sin(th))
+        Gu[1,0] = 1/om * (-np.cos(th + om*dt) + np.cos(th))
+        Gu[0,1] = -V/om**2 * (np.sin(th + om*dt) - np.sin(th)) + V*dt/om * np.cos(th + om*dt)
+        Gu[1,1] = -V/om**2 * (-np.cos(th + om*dt) + np.cos(th)) + V*dt/om * np.sin(th + om*dt)
+        Gu[2,1] = dt
 
     ########## Code ends here ##########
 
@@ -55,7 +91,7 @@ def transform_line_to_scanner_frame(line, x, tf_base_to_camera, compute_jacobian
     #       a camera frame with origin at x_cam, y_cam rotated by th_cam wrt to the world frame
     # HINT: What is the projection of the camera location (x_cam, y_cam) on the line r? 
     # HINT: To find Hx, write h in terms of the pose of the base in world frame (x_base, y_base, th_base)
-
+    
 
     ########## Code ends here ##########
 
