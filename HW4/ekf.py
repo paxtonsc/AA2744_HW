@@ -207,6 +207,39 @@ class EkfLocalization(Ekf):
         #       find the closest predicted line and the corresponding minimum Mahalanobis distance
         #       if the minimum distance satisfies the gating criteria, add corresponding entries to v_list, Q_list, H_list
 
+        # z_raw 2 by I
+        # hs 2, J
+
+        # v 2, I, J
+        for i in range(z_raw.shape[1]):
+            z_r = z_raw[1,i]
+            z_alpha = z_raw[0,i]
+            diff_r = z_r - hs[1]
+            diff_alpha = angle_diff(z_alpha, hs[0])
+            
+            #2 by J
+            v = np.vstack((diff_alpha, diff_r))
+            print(f'diff shape {v.shape}')
+
+
+            H = np.array(Hs)
+            J = H.shape[0]
+
+            # 15, 2, 2
+            S = np.matmul(H@self.Sigma, H.transpose(0,2,1)) + Q_raw[i]
+
+            #d J by
+            v_stacked = v.reshape(J, 2, 1)
+            print(v_stacked.transpose(0,2,1).shape)
+            print(np.linalg.inv(S).shape)
+            print(v_stacked.shape)
+            print(np.matmul(v_stacked.transpose(0,2,1), np.linalg.inv(S)))
+            d = v_stacked.transpose(0,2,1) @ np.linalg.inv(S) @ v_stacked
+            print(d.shape)
+            print(d)
+
+
+
 
         ########## Code ends here ##########
 
@@ -230,7 +263,9 @@ class EkfLocalization(Ekf):
             ########## Code starts here ##########
             # TODO: Compute h, Hx using tb.transform_line_to_scanner_frame() for the j'th map line.
             # HINT: This should be a single line of code.
-            
+
+            h, Hx = tb.transform_line_to_scanner_frame(self.map_lines[:,j], self.x, self.tf_base_to_camera)
+
 
             ########## Code ends here ##########
 
