@@ -84,7 +84,10 @@ class Ekf(object):
         ########## Code starts here ##########
         # TODO: Update self.x, self.Sigma.
 
-
+        S = H @ self.Sigma @ H.T + Q
+        K = self.Sigma @ H.T @ np.linalg.inv(S)
+        self.x = self.x + K @ z
+        self.Sigma = self.Sigma - K @ S @ K.T
         ########## Code ends here ##########
 
     def measurement_model(self, z_raw, Q_raw):
@@ -158,7 +161,17 @@ class EkfLocalization(Ekf):
         # TODO: Compute z, Q.
         # HINT: The scipy.linalg.block_diag() function may be useful.
         # HINT: A list can be unpacked using the * (splat) operator. 
+        z = np.array(v_list).flatten()
 
+        #print(f'z shape {z.shape}')
+
+        # Qlist - K by 2 by 2
+        Q = scipy.linalg.block_diag(*Q_list)
+        #print(f'Q shape {Q.shape}')
+
+        # H list : K by 2 by 3
+        H = np.array(H_list).reshape(-1, np.array(H_list).shape[2])
+        #print(f'H shape {H.shape}')
 
         ########## Code ends here ##########
 
@@ -211,7 +224,15 @@ class EkfLocalization(Ekf):
         # hs 2, J
 
         # v 2, I, J
+        v_list = []
+        Q_list = []
+        H_list = []
+
+        H = np.array(Hs)
+        J = H.shape[0]
+
         for i in range(z_raw.shape[1]):
+            z = z_raw[:,i]
             z_r = z_raw[1,i]
             z_alpha = z_raw[0,i]
             diff_r = z_r - hs[1]
@@ -219,27 +240,22 @@ class EkfLocalization(Ekf):
             
             #2 by J
             v = np.vstack((diff_alpha, diff_r))
-            print(f'diff shape {v.shape}')
-
-
-            H = np.array(Hs)
-            J = H.shape[0]
 
             # 15, 2, 2
             S = np.matmul(H@self.Sigma, H.transpose(0,2,1)) + Q_raw[i]
-
-            #d J by
-            v_stacked = v.reshape(J, 2, 1)
-            print(v_stacked.transpose(0,2,1).shape)
-            print(np.linalg.inv(S).shape)
-            print(v_stacked.shape)
-            print(np.matmul(v_stacked.transpose(0,2,1), np.linalg.inv(S)))
+            #d J by 
+            v_stacked = v.transpose(1,0).reshape(J, 2, 1)
+            v_stacked_T = v_stacked.transpose(0,2,1)
             d = v_stacked.transpose(0,2,1) @ np.linalg.inv(S) @ v_stacked
-            print(d.shape)
-            print(d)
+            d = np.squeeze(d)
 
-
-
+            d_min = np.min(d)
+            # print(f'g: {self.g}')
+            if d_min < self.g ** 2:
+                d_min_ind = np.argmin(d)
+                v_list.append(v[:, d_min_ind])
+                Q_list.append(Q_raw[i])
+                H_list.append(H[d_min_ind, :, :])
 
         ########## Code ends here ##########
 
@@ -265,7 +281,6 @@ class EkfLocalization(Ekf):
             # HINT: This should be a single line of code.
 
             h, Hx = tb.transform_line_to_scanner_frame(self.map_lines[:,j], self.x, self.tf_base_to_camera)
-
 
             ########## Code ends here ##########
 
@@ -311,7 +326,10 @@ class EkfSlam(Ekf):
         # TODO: Compute g, Gx, Gu.
         # HINT: This should be very similar to EkfLocalization.transition_model() and take 1-5 lines of code.
         # HINT: Call tb.compute_dynamics() with the correct elements of self.x
-
+        g_loc, Gx_loc, Gu_loc = tb.compute_dynamics(self.x, u, dt)
+        g[0:3] = g_loc
+        Gx[0:3, 0:3] = Gx_loc
+        Gu[0:3, :] = Gu_loc
 
         ########## Code ends here ##########
 
