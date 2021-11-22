@@ -201,8 +201,11 @@ class MonteCarloLocalization(ParticleFilter):
         gr_th_update = dt * om[gr_om_ind]
 
         ls_x_update = dt*V[ls_om_ind] * np.cos(self.xs[ls_om_ind,2])
+        print(f'ls_x_update shape: {ls_x_update.shape}')
         ls_y_update = dt*V[ls_om_ind] * np.sin(self.xs[ls_om_ind,2])
+        print(f'ls_x_update shape: {ls_x_update.shape}')
         ls_th_update = np.zeros(ls_om_ind.shape)
+        print(f'ls_th_update shape: {ls_th_update.shape}')
 
         if gr_om_ind.size != 0:
             g[gr_om_ind, :] = self.xs[gr_om_ind, :] + np.vstack((gr_x_update, gr_y_update, gr_th_update)).T
